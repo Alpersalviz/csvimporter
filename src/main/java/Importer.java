@@ -9,6 +9,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import com.mysql.jdbc.Driver;
 /**
@@ -19,7 +20,7 @@ public class Importer {
     private static int i = 0;
 
     public static void main(String[] args) {
-        String csvFile = "C:/Users/AlperSalviz/IdeaProjects/Alper/src/main/resources/implant.csv";
+        String csvFile = "/Users/admin/Desktop/java-project/implant/src/main/resources/MASSON.csv";
         BufferedReader bufferedReader = null;
         String line = "";
         String csvSplitBy = ",";
@@ -148,7 +149,7 @@ public class Importer {
 
                 }
 
-                String[] patinetNumbers = patientCallNumbers.get(i).split("-");
+                String[] patinetNumbers = patientCallNumbers.get(i).split("-|/");
 
                 for (int y =0 ; y<patinetNumbers.length;y++){
                     ResultSet resultSetPhone = statement.executeQuery("select * from phone_no_pat Where phone_no Like '%"+patinetNumbers[y]+"%'");
@@ -181,9 +182,11 @@ public class Importer {
                         e.printStackTrace();
                     }
 
+                    int isOnDevice = status.get(i).indexOf("On Device");
 
-                    String implantInsertQuery = " insert into implant (patientID  ,HVADPumpID ,hospitalID, implant_date , status_date ,patient_status, descr_dev_of_pat ,stay_duration_of_dev ,qty)"
-                            + " values (?,?,?,?,?,?,?,?,?)";
+                    String implantInsertQuery = " insert into implant (patientID  ,HVADPumpID ,hospitalID, implant_date , status_date ,patient_status, descr_dev_of_pat ,stay_duration_of_dev ,qty ,on_device)"
+
+                            + " values (?,?,?,?,?,?,?,?,?,?)";
                     PreparedStatement preparedStmtImplant = conn.prepareStatement(implantInsertQuery, Statement.RETURN_GENERATED_KEYS);
                     preparedStmtImplant.setString (1, patientId.get(i));
                     preparedStmtImplant.setString (2, HVADID.get(i));
@@ -192,8 +195,15 @@ public class Importer {
                     preparedStmtImplant.setString (5, String.valueOf(statusDatei));
                     preparedStmtImplant.setString (6, status.get(i));
                     preparedStmtImplant.setString (7, "");
-                    preparedStmtImplant.setString (8, onDevice.get(i).replaceAll("\\s","."));
+                    long diff = statusDatei.getTime() - implantDate.getTime();
+                    int diffDay = ((int) TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS) + 1);
+                    preparedStmtImplant.setString (8, String.valueOf(diffDay));
                     preparedStmtImplant.setString (9, "1");
+                    if (isOnDevice == -1){
+                        preparedStmtImplant.setString (10, "0");
+                    }else {
+                        preparedStmtImplant.setString (10, "1");
+                    }
 
                     preparedStmtImplant.execute();
 
